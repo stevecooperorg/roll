@@ -1,0 +1,6 @@
+positive_int = { '1'..'9' ~ ('0'..'9')* } // 1-9 followed by 0-9*
+number = { ('0'..'9')+ } // 0-9+
+modifier = { ("+" | "-") ~ number } // + or - followed by a number
+roll = { count ~ "d" ~ sides ~ modifier? ~ EOI } // count followed by d followed by sides followed by modifier (if any) followed by end of input
+count = { positive_int } // a positive integer
+sides = { positive_int } // a positive integer

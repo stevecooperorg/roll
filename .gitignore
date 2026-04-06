@@ -1,0 +1,17 @@
+# Rust
+/target/
+rs/target/
+rs/**/*.rs.bk
+
+# .NET
+csharp/**/bin/
+csharp/**/obj/
+*.user
+*.suo
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
