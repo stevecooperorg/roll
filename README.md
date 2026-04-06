@@ -1,8 +1,6 @@
 # Dice expressions (Rust + C#)
 
-This is a dice roller that supports parsing and rolling dice expressions like `2d6+1`, `1d20`, or `3d8-2`.
-
-The rust version uses [Pest](https://pest.rs/) to parse the expression, while the C# version uses a small hand-written parser.
+This is a dice roller that lets you write dice expressions like `2d6+1`, `1d20`, or `3d8-2`. There's a rust and a C# version. 
 
 Both programs print something like this:    
 
@@ -13,23 +11,27 @@ $ roll 2d6+1
 8
 ```
 
-The rust is in `rs/`, the C# is in `csharp/`.
+The project is an illustration -- how can you parse and roll dice expressions in both Rust and C#, without using regex? You could use regex for this, but if you want to parse more complex expressions like whole programming languages, regular expressions get messy fast.
 
-## Quick start
+The C# version uses [Superpower](https://github.com/datalust/superpower), a libary that uses LINQ-style syntax to build up complex expressions from smaller parts. It's in the `csharp/` folder.
 
-**Rust** (from repo root):
+The rust version uses [Pest](https://pest.rs/) to parse the expression, which uses a special language called a 'grammar' to describe the expression. It's in the `rs/` folder.
 
-```bash
-cargo run --manifest-path rs/Cargo.toml --bin roll -- 2d6+1
-```
 
-**C#** (.NET 9 SDK; projects target `net9.0`):
+
+# Run the C# version
 
 ```bash
 dotnet run --project csharp/src/Roll/Roll.csproj -- 2d6+1
 ```
 
-## How does Pest work? 
+# Run the rust version
+
+```bash
+cargo run --manifest-path rs/Cargo.toml --bin roll -- 2d6+1
+```
+
+# Rust: How does Pest work? 
 
 We want to parse dice expressions like `2d6+1`, `1d20`, or `3d8-2`.
 
@@ -84,13 +86,32 @@ println!("{}", format_roll_line(&expr, &faces, roll.modifier));
 println!("{total}");
 ```
 
-### C#: similar jobs, different tools
+# C#: How does Superpower work?
 
-If you want to write a parser in C# you have a few options:
+[Superpower](https://github.com/datalust/superpower) lets you build parsers by combining smaller parsers together into bigger ones using LINQ-style syntax. 
 
-- Use a parser combinator library like [Superpower](https://github.com/datalust/superpower) or [Sprache](https://github.com/sprache/Sprache)
-- Use a grammar file like [Pegasus](https://github.com/otac0n/Pegasus)
+So you might have a parser for a number like this:
 
-For everyday string parsing in C#, **Superpower** or **Sprache** are common first picks. For a dedicated grammar file like Pest, **Pegasus** is the closer analogy.
+```csharp
+// A parser for a number between 1 and 9 followed by 0-9*
+private static readonly TextParser<int> PositiveInt =
+    from first in Character.In('1', '2', '3', '4', '5', '6', '7', '8', '9')
+    from rest in Character.Digit.Many()
+    select FoldPositiveDigits(first, rest);
+```
 
-The **C# sample in this repo** uses a small hand-written parser (no extra NuGet packages) so the logic stays easy to read alongside the Rust grammar; you could port the same shape to Pegasus if you want a `.peg` file.
+And a parser for a modifier like this:
+
+```csharp
+    // A parser for a roll like 2d6+1
+    private static readonly TextParser<(int Count, int Sides, int Modifier)> Roll =
+        from count in PositiveInt
+        from _ in D
+        from sides in PositiveInt
+        from mod in Combinators.OptionalOrDefault(Modifier, 0)
+        select (count, sides, mod);
+```
+
+And you can see how the `Roll` parser is built from the `PositiveInt` parser and the `Modifier` parser.
+
+It does the same job as the Pest grammar above, but uses a different approach that's much more natural for C#. The implementation lives in [`csharp/src/DiceExpressions.Core/DiceParser.cs`](csharp/src/DiceExpressions.Core/DiceParser.cs)—open that file to see how each rule is wired.

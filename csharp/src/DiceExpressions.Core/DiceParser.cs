@@ -1,75 +1,74 @@
+using Superpower;
+using Superpower.Parsers;
+
 namespace DiceExpressions;
 
 public static class DiceParser
 {
+    private static readonly TextParser<int> PositiveInt =
+        from first in Character.In('1', '2', '3', '4', '5', '6', '7', '8', '9')
+        from rest in Character.Digit.Many()
+        select FoldPositiveDigits(first, rest);
+
+    private static readonly TextParser<char> D = Character.EqualToIgnoreCase('d');
+
+    private static readonly TextParser<int> Modifier =
+        from sign in Character.EqualTo('+').Or(Character.EqualTo('-'))
+        from digits in Character.Digit.AtLeastOnce()
+        select Sign(sign) * FoldUnsignedDigits(digits);
+
+    private static readonly TextParser<(int Count, int Sides, int Modifier)> Roll =
+        from count in PositiveInt
+        from _ in D
+        from sides in PositiveInt
+        from mod in Combinators.OptionalOrDefault(Modifier, 0)
+        select (count, sides, mod);
+
+    private static readonly TextParser<(int Count, int Sides, int Modifier)> RollAtEnd = Combinators.AtEnd(Roll);
+
     public static DiceRoll Parse(string input)
     {
         if (string.IsNullOrEmpty(input))
             throw new FormatException("empty input");
 
-        var i = 0;
-        var count = ReadPositiveInt(input, ref i);
-        if (count < 1 || count > DiceRoll.MaxCount)
-            throw new FormatException($"count must be between 1 and {DiceRoll.MaxCount}");
-
-        if (i >= input.Length || char.ToLowerInvariant(input[i]) != 'd')
-            throw new FormatException("expected 'd'");
-        i++;
-
-        var sides = ReadPositiveInt(input, ref i);
-        if (sides < 2 || sides > DiceRoll.MaxSides)
-            throw new FormatException($"sides must be between 2 and {DiceRoll.MaxSides}");
-
-        var modifier = 0;
-        if (i < input.Length)
+        try
         {
-            var c = input[i];
-            if (c != '+' && c != '-')
-                throw new FormatException("expected end of input or a modifier");
-            var sign = c == '-' ? -1 : 1;
-            i++;
-            var modNum = ReadNumber(input, ref i);
-            modifier = sign * modNum;
+            var (count, sides, modifier) = RollAtEnd.Parse(input);
+            if (count < 1 || count > DiceRoll.MaxCount)
+                throw new FormatException($"count must be between 1 and {DiceRoll.MaxCount}");
+            if (sides < 2 || sides > DiceRoll.MaxSides)
+                throw new FormatException($"sides must be between 2 and {DiceRoll.MaxSides}");
+            return new DiceRoll(count, sides, modifier);
         }
-
-        if (i != input.Length)
-            throw new FormatException("unexpected trailing characters");
-
-        return new DiceRoll(count, sides, modifier);
+        catch (ParseException e)
+        {
+            throw new FormatException(e.Message, e);
+        }
     }
 
-    private static int ReadPositiveInt(string s, ref int i)
+    private static int Sign(char c) => c == '-' ? -1 : 1;
+
+    private static int FoldPositiveDigits(char first, char[] rest)
     {
-        if (i >= s.Length || s[i] < '1' || s[i] > '9')
-            throw new FormatException("expected a positive integer");
-        long v = s[i] - '0';
-        i++;
-        while (i < s.Length && s[i] >= '0' && s[i] <= '9')
+        long v = first - '0';
+        foreach (var c in rest)
         {
-            v = v * 10 + (s[i] - '0');
+            v = v * 10 + (c - '0');
             if (v > int.MaxValue)
                 throw new FormatException("number too large");
-            i++;
         }
         return (int)v;
     }
 
-    private static int ReadNumber(string s, ref int i)
+    private static int FoldUnsignedDigits(char[] digits)
     {
-        if (i >= s.Length)
-            throw new FormatException("expected digits");
         long v = 0;
-        var any = false;
-        while (i < s.Length && s[i] >= '0' && s[i] <= '9')
+        foreach (var c in digits)
         {
-            any = true;
-            v = v * 10 + (s[i] - '0');
+            v = v * 10 + (c - '0');
             if (v > int.MaxValue)
                 throw new FormatException("number too large");
-            i++;
         }
-        if (!any)
-            throw new FormatException("expected digits");
         return (int)v;
     }
 }
