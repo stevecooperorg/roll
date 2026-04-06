@@ -17,8 +17,6 @@ The C# version uses [Superpower](https://github.com/datalust/superpower), a liba
 
 The rust version uses [Pest](https://pest.rs/) to parse the expression, which uses a special language called a 'grammar' to describe the expression. It's in the `rs/` folder.
 
-
-
 # Run the C# version
 
 ```bash
@@ -31,7 +29,7 @@ dotnet run --project csharp/src/Roll/Roll.csproj -- 2d6+1
 cargo run --manifest-path rs/Cargo.toml --bin roll -- 2d6+1
 ```
 
-# Rust: How does Pest work? 
+# Rust: How does Pest work?
 
 We want to parse dice expressions like `2d6+1`, `1d20`, or `3d8-2`.
 
@@ -67,7 +65,7 @@ In rust you need to wire together the pest file and the rust code with a special
 struct DiceParser;
 ```
 
-And then you need to call the parser, and it it works write code to extract out the named parts. In `rs/src/lib.rs` you'll see the `parse_dice()` function, and that returns a `DiceRoll` struct;
+And then you need to call the parser, and it it works write code to extract out the named parts. In [`rs/src/lib.rs`](rs/src/lib.rs) you'll see the `parse_dice()` function, and that returns a `DiceRoll` struct;
 
 ```rust
 struct DiceRoll {
@@ -114,4 +112,4 @@ And a parser for a modifier like this:
 
 And you can see how the `Roll` parser is built from the `PositiveInt` parser and the `Modifier` parser.
 
-It does the same job as the Pest grammar above, but uses a different approach that's much more natural for C#. The implementation lives in [`csharp/src/DiceExpressions.Core/DiceParser.cs`](csharp/src/DiceExpressions.Core/DiceParser.cs)—open that file to see how each rule is wired.
+It does the same job as the Pest grammar above, but uses a different approach that's much more natural for C#. The implementation lives in `[csharp/src/DiceExpressions.Core/DiceParser.cs](csharp/src/DiceExpressions.Core/DiceParser.cs)`—open that file to see how each rule is wired.
